@@ -76,7 +76,50 @@ class API_TRADING:
         epoch = datetime.datetime(1970, 1, 1)
         specific_date = epoch + datetime.timedelta(seconds=int(timestamp))
         return specific_date.strftime('%Y%m%d-%H:%M:%S')
-    def 
+    
+    def place_limit_ord(price,qty,side,stop_price = None):
+        headers = {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'api-key': MOM_API_KEY,
+              'signature': '****',
+              'timestamp': '****'
+              }
+        
+        params = {
+              "product_id": 27,
+              "product_symbol": "BTCUSD",
+              "limit_price": price,
+              "size": qty,
+              "side": side,
+              "order_type": "limit_order",
+              "stop_order_type": "stop_loss_order",
+              "stop_price": "56000",
+              "trail_amount": "50",
+              "stop_trigger_method": "last_traded_price",
+              "mmp": "disabled",
+              "post_only": False,
+              "reduce_only": False,
+              "client_order_id": "34521712",
+              "cancel_orders_accepted": False
+            }
+        r = requests.post(delta_api_url+'/orders', params= params, headers = headers)
+        print(r.json())
+
+    
+    def place_market_ord():
+        pass
+    
+    def place_cancel_ord():
+        pass
+    def place_modify_ord():
+        pass
+    def place_cancel_all_ords():
+        pass
+    
+    
+    
+    
     
 test_api = API_TRADING("abc", "edf", delta_api_url)
 #print(test_api.generate_signature( "this is a messge"))
@@ -86,6 +129,8 @@ headers = {
 }
 
 start_day = API_TRADING.convert_date_to_timestamp('20240601')
+
+"""
 total_data = []
 
 
@@ -109,7 +154,7 @@ while(True):
         writer.writerows(sorted_data)
     time.sleep(1)
     
-    
+"""  
     
 #print(API_TRADING.convert_timestamp_to_date_time(1717200000))
 #print(API_TRADING.convert_timestamp_to_date_time(1737000000))
