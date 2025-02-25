@@ -17,8 +17,9 @@ import time
 import json
 
 
-MOM_API_KEY="vAHP5D1PacHQTsI3UgUS4eNZ6Fw4Fa"
+MOM_API_KEY="08zzAOGvmYayCzdQPlXqbDhu7ayRZT"
 delta_api_url = "https://api.india.delta.exchange/v2"
+API_SECRET="TZm7kNbf91csQxCvRpl6t8u4bQfvplTa1Tdr39u6OCH3L68glptH2BNr4bgT"
 
 
 
@@ -41,16 +42,16 @@ class API_TRADING:
         hash = hmac.new(secret, message, hashlib.sha256)
         return hash.hexdigest()
     
-    def get_curr_timestamp():
+    def get_curr_timestamp(self):
         """
         returns the Unix timestamp for the current time in UTC timezone
         
         """
         d = datetime.datetime.utcnow()
         epoch = datetime.datetime(1970,1,1)
-        return str(int((d - epoch).total_seconds()))
+        return str(int((d - epoch).total_seconds())*1) #1000 to get in millis
     
-    def convert_date_to_timestamp(_date):
+    def convert_date_to_timestamp(self,_date):
         """
         returns the Unix timestamp for a specific date in the format 'YYYYMMDD'
         
@@ -60,7 +61,7 @@ class API_TRADING:
         return str(int((specific_date - epoch).total_seconds()))
     
     
-    def convert_date_time_to_timestamp(_datetime):
+    def convert_date_time_to_timestamp(self,_datetime):
         """
         returns the Unix timestamp for a specific UTC date-time in the format 'YYYYMMDD-H:M:S'
         
@@ -69,7 +70,7 @@ class API_TRADING:
         epoch = datetime.datetime(1970, 1, 1)
         return str(int((specific_date - epoch).total_seconds()))
     
-    def convert_timestamp_to_date_time(timestamp):
+    def convert_timestamp_to_date_time(self,timestamp):
         """
         returns the UTC date-time in the format 'YYYYMMDD-H:M:S' from a Unix timestamp.
         """
@@ -77,7 +78,115 @@ class API_TRADING:
         specific_date = epoch + datetime.timedelta(seconds=int(timestamp))
         return specific_date.strftime('%Y%m%d-%H:%M:%S')
     
-    def place_limit_ord(price,qty,side,stop_price = None):
+    def place_limit_ord(self,price,qty,side):
+        timestamp = self.get_curr_timestamp()
+        params = {
+              "product_symbol": "BTCUSD",
+              "limit_price": price,
+              "size": qty,
+              "side": side,
+              "order_type": "limit_order",
+              "post_only": False,
+              "client_order_id": "1"
+            }
+        method = 'POST'
+        path = '/v2/orders'
+        query_string = ''
+        payload = json.dumps(params)
+        signature_data = method + timestamp + path + query_string + payload
+        signature = self.generate_signature(signature_data)
+        headers = {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'api-key': MOM_API_KEY,
+              'signature': signature,
+              'timestamp': timestamp
+              }
+        
+        
+        r = requests.post(f"{delta_api_url}/orders", json= params, headers = headers)
+        print(r.json())
+
+    
+    def place_market_ord(self,qty,side):
+        timestamp = self.get_curr_timestamp()
+        params = {
+              "product_symbol": "BTCUSD",
+              "size": qty,
+              "side": side,
+              "order_type": "market_order",
+              "client_order_id": "1"
+            }
+        method = 'POST'
+        path = '/v2/orders'
+        query_string = ''
+        payload = json.dumps(params)
+        signature_data = method + timestamp + path + query_string + payload
+        signature = self.generate_signature(signature_data)
+        headers = {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'api-key': MOM_API_KEY,
+              'signature': signature,
+              'timestamp': timestamp
+              }
+        r = requests.post(f"{delta_api_url}/orders", json= params, headers = headers)
+        print(r.json())
+    
+    def place_cancel_ord(self,exch_ord_id, client_ord_id):
+        timestamp = self.get_curr_timestamp()
+        params = {
+              "product_symbol": "BTCUSD",
+              "id":exch_ord_id,
+              "client_order_id": str(client_ord_id)
+              }
+        method = 'DELETE'
+        path = '/v2/orders'
+        query_string = ''
+        payload = json.dumps(params)
+        signature_data = method + timestamp + path + query_string + payload
+        signature = self.generate_signature(signature_data)
+        headers = {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'api-key': MOM_API_KEY,
+              'signature': signature,
+              'timestamp': timestamp
+              }
+
+        r = requests.delete(f"{delta_api_url}/orders", json=params, headers = headers)
+        print(r.json())
+        
+
+    def place_modify_ord(self,exch_ord_id,new_price, new_qty):
+        timestamp = self.get_curr_timestamp()
+        params = {
+              "product_symbol": "BTCUSD",
+              "limit_price": new_price,
+              "size": new_qty,
+              "id": exch_ord_id #exch id is int client is string
+            }
+        method = 'PUT'
+        path = '/v2/orders'
+        query_string = ''
+        payload = json.dumps(params)
+        signature_data = method + timestamp + path + query_string + payload
+        signature = self.generate_signature(signature_data)
+        headers = {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'api-key': MOM_API_KEY,
+              'signature': signature,
+              'timestamp': timestamp
+              }
+        
+        r = requests.put(f"{delta_api_url}/orders", json= params, headers = headers)
+        print(r.json())
+        
+        
+   
+        
+    def place_cancel_all_ords(self):
         headers = {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -85,51 +194,46 @@ class API_TRADING:
               'signature': '****',
               'timestamp': '****'
               }
-        
         params = {
-              "product_id": 27,
-              "product_symbol": "BTCUSD",
-              "limit_price": price,
-              "size": qty,
-              "side": side,
-              "order_type": "limit_order",
-              "stop_order_type": "stop_loss_order",
-              "stop_price": "56000",
-              "trail_amount": "50",
-              "stop_trigger_method": "last_traded_price",
-              "mmp": "disabled",
-              "post_only": False,
-              "reduce_only": False,
-              "client_order_id": "34521712",
-              "cancel_orders_accepted": False
-            }
-        r = requests.post(delta_api_url+'/orders', params= params, headers = headers)
+          "product_symbol": "BTCUSD",
+          "contract_types": "perpetual_futures",
+          "cancel_limit_orders": True,
+          "cancel_stop_orders": True,
+          "cancel_reduce_only_orders": True
+                }
+        r = requests.delete(f"{delta_api_url}/orders/all", json=params, headers = headers)
+        print(r.json())
+        
+    def get_active_orders(self):
+        timestamp = self.get_curr_timestamp()
+        method = 'GET'
+        path = '/v2/orders'
+        query_string = ''
+        signature_data = method + timestamp + path + query_string 
+        signature = self.generate_signature(signature_data)
+        headers = {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'api-key': MOM_API_KEY,
+              'signature': signature,
+              'timestamp': timestamp
+              }
+        r = requests.get('https://api.india.delta.exchange/v2/orders', headers = headers)
         print(r.json())
 
     
-    def place_market_ord():
-        pass
-    
-    def place_cancel_ord():
-        pass
-    def place_modify_ord():
-        pass
-    def place_cancel_all_ords():
-        pass
     
     
     
     
-    
-test_api = API_TRADING("abc", "edf", delta_api_url)
-#print(test_api.generate_signature( "this is a messge"))
 
-headers = {
-  'Accept': 'application/json'
-}
 
-start_day = API_TRADING.convert_date_to_timestamp('20240601')
 
+api_instance = API_TRADING(MOM_API_KEY,API_SECRET,delta_api_url)
+#api_instance.place_limit_ord("101000",1,"sell")
+api_instance.get_active_orders()
+#api_instance.place_cancel_ord(306456487, '1')
+#api_instance.place_modify_ord(306456487,"102000", 2)
 """
 total_data = []
 
